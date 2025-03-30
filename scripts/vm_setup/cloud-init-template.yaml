@@ -1,0 +1,51 @@
+#cloud-config
+
+groups:
+  - admingroup: [root,sys]
+  - cloud-users
+
+users:
+  - name: user
+    groups: users, admin
+    # so our user can just sudo without any password
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    shell: /bin/bash
+    # source private/secret_env.sh which contains my ssh public key 
+    ssh_authorized_keys:
+      - $SSH_PUB_KEY
+
+locale: en_US.UTF-8
+write_files:
+  - path: /etc/default/locale
+    content: |
+      LANG="en_US.UTF-8"
+      LANGUAGE="en_US:en"
+      LC_ALL="en_US.UTF-8"
+timezone: UTC
+
+packages:
+  - python3
+  - python3-pip
+  - git
+  - qemu-guest-agent
+  - fish
+  - locales
+  - kitty-terminfo
+  - neovim
+
+runcmd:
+  # qemu
+  - systemctl enable qemu-guest-agent
+  - systemctl start qemu-guest-agent
+
+  # language
+  # uncomment en_US.UTF-8 in /etc/locale.gen
+  - sed -i 's/^# *\(en_US.UTF-8\)/\1/' /etc/locale.gen
+  - locale-gen en_US.UTF-8
+  - update-locale LANG=en_US.UTF-8
+
+  # ansible shared folder
+  - sudo mkdir -p /mnt/ansible
+  - echo "ansible-folder /mnt/ansible virtiofs defaults 0 0" | sudo tee -a /etc/fstab
+  - sudo mount -a
+  - echo "Setting up NetOrion"
