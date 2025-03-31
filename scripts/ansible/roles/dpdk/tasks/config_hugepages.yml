@@ -1,0 +1,108 @@
+---
+# Task to configure HugePages for DPDK
+
+- name: Allocate HugePages at runtime for 2MB pages
+  shell: echo "{{ dpdk_hugepages }}" | sudo tee /sys/kernel/mm/hugepages/hugepages-2048kB/nr_hugepages
+  args:
+    # Ensures the command runs only if the desired number of HugePages is not already set
+    creates: /sys/kernel/mm/hugepages/hugepages-2048kB/nr_hugepages
+  become: yes
+
+- name: Allocate HugePages at runtime for 1GB pages
+  shell: echo "{{ dpdk_hugepages_1g }}" | sudo tee /sys/kernel/mm/hugepages/hugepages-1048576kB/nr_hugepages
+  args:
+    creates: /sys/kernel/mm/hugepages/hugepages-1048576kB/nr_hugepages
+  when: dpdk_hugepages_1g is defined
+  become: yes
+
+- name: Create HugePages mount point directory for 2MB pages
+  file:
+    path: "{{ hugepage_mount_point }}"
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+  become: yes
+
+- name: Mount HugeTLBFS for 2MB pages
+  mount:
+    path: "{{ hugepage_mount_point }}"
+    src: "hugetlbfs"
+    fstype: "hugetlbfs"
+    opts: "pagesize={{ hugepage_size }},mode=0755"
+    state: mounted
+  become: yes
+
+- name: Ensure HugeTLBFS is mounted at boot for 2MB pages
+  mount:
+    path: "{{ hugepage_mount_point }}"
+    src: "hugetlbfs"
+    fstype: "hugetlbfs"
+    opts: "pagesize={{ hugepage_size }},mode=0755"
+    state: present
+  become: yes
+
+- name: Create HugePages mount point directory for 1GB pages
+  file:
+    path: "/mnt/huge"
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+  become: yes
+  when: dpdk_hugepages_1g is defined
+
+- name: Mount HugeTLBFS for 1GB pages
+  mount:
+    path: "/mnt/huge"
+    src: "hugetlbfs"
+    fstype: "hugetlbfs"
+    opts: "pagesize=1GB,mode=0755"
+    state: mounted
+  become: yes
+  when: dpdk_hugepages_1g is defined
+
+- name: Ensure HugeTLBFS is mounted at boot for 1GB pages
+  mount:
+    path: "/mnt/huge"
+    src: "hugetlbfs"
+    fstype: "hugetlbfs"
+    opts: "pagesize=1GB,mode=0755"
+    state: present
+  become: yes
+  when: dpdk_hugepages_1g is defined
+
+- name: Add HugePages settings to /etc/sysctl.conf for 2MB pages
+  lineinfile:
+    path: /etc/sysctl.conf
+    line: "vm.nr_hugepages={{ dpdk_hugepages }}"
+    state: present
+    create: yes
+  become: yes
+
+- name: Apply sysctl settings
+  sysctl:
+    name: vm.nr_hugepages
+    value: "{{ dpdk_hugepages }}"
+    state: present
+
+# Verify HugePages allocation for 2MB pages
+- name: Verify HugePages allocation for 2MB pages
+  shell: grep HugePages_Total /proc/meminfo
+  register: hugepage_total_2m
+
+- name: Debug HugePages allocation for 2MB pages
+  debug:
+    msg: "Total HugePages allocated (2MB): {{ hugepage_total_2m.stdout }}"
+  when: hugepage_total_2m.stdout | regex_search('HugePages_Total:\s+\d+')
+
+# Optional: Verify HugePages allocation for 1GB pages
+- name: Verify HugePages allocation for 1GB pages
+  shell: grep HugePages_Total /proc/meminfo
+  register: hugepage_total_1g
+  when: dpdk_hugepages_1g is defined
+
+- name: Debug HugePages allocation for 1GB pages
+  debug:
+    msg: "Total HugePages allocated (1GB): {{ hugepage_total_1g.stdout }}"
+  when: dpdk_hugepages_1g is defined

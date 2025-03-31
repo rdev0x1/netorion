@@ -1,0 +1,13 @@
+---
+# Main task file for DPDK role
+- name: Include installation tasks
+  include_tasks: install.yml
+
+- name: Include configuration tasks
+  include_tasks: config_hugepages.yml
+
+- name: Include configuration tasks
+  include_tasks: config_dpdk.yml
+
+#- name: Include interface binding tasks
+#  include_tasks: bind_interfaces.yml

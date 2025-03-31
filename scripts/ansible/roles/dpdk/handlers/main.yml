@@ -1,0 +1,7 @@
+---
+# Handlers to restart services
+- name: Restart VPP
+  service:
+    name: vpp
+    state: restarted
+  become: yes

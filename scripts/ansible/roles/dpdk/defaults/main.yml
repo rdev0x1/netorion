@@ -1,0 +1,3 @@
+dpdk_hugepages: 1024
+hugepage_size: "2048kB"  # 2MB pages
+hugepage_mount_point: "/dev/hugepages"

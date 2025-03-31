@@ -1,0 +1,4 @@
+---
+# Variable for DPDK setups
+# dpdk_version: "25.02"
+# dpdk_download_url: "https://fast.dpdk.org/rel/dpdk-{{ dpdk_version }}.tar.xz"

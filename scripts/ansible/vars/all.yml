@@ -2,3 +2,7 @@
 # Common variables
 netorion_build_dir: "/opt/netorion_build"
 netorion_user: "user"
+# keep ndpi version compatible with ntopng branch
+ndpi_branch: "78ca74cf450b76fe4a6116a39ca0dc3d4a0c9582"
+ntopng_branch: "dev_add_dpdk_support"
+libl2fwd_branch: "master"

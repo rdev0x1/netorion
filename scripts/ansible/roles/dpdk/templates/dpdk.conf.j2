@@ -1,0 +1,8 @@
+# DPDK Configuration
+
+# Set hugepages memory
+HUGEPAGES={{ dpdk_hugepages }}
+HUGE_DIR={{ hugepage_mount_point }}
+
+# EAL arguments
+DPDK_OPTIONS="--file-prefix=dpdk --log-level=info --huge-dir={{ hugepage_mount_point }}"

@@ -15,6 +15,15 @@
 - name: Install required packages
   apt:
     name:
+      - python3
+      - python3-pip
+      - qemu-guest-agent
+      - fish
+      - locales
+      - kitty-terminfo
+      - neovim
+      - iptables-persistent
+      - ansible
       - git
       - build-essential
       - libvirt-dev
@@ -23,5 +32,9 @@
       - libnl-genl-3-dev
       - pkg-config
       - python3-venv
-      - ufw
+      - bison
+      - flex
+      - autoconf
+      - automake
+      - autogen
     state: present

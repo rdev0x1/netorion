@@ -1,0 +1,17 @@
+---
+# Task to configure DPDK
+
+- name: Create /etc/dpdk directory
+  file:
+    path: /etc/dpdk
+    state: directory
+    mode: '0755'
+  become: yes
+
+- name: Set up DPDK environment script
+  template:
+    src: dpdk.conf.j2
+    dest: /etc/dpdk/dpdk.conf
+    owner: root
+    group: root
+    mode: '0644'

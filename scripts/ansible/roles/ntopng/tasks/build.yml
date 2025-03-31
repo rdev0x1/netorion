@@ -11,6 +11,7 @@
   git:
     repo: https://github.com/ntop/nDPI.git
     dest: "{{ netorion_build_dir }}/nDPI"
+    version: "{{ ndpi_branch }}"
   register: ndpi_clone
   become: yes
   become_user: "{{ netorion_user }}"
@@ -21,21 +22,15 @@
     ./autogen.sh
     ./configure
     make -j$(nproc)
-  when: ndpi_clone.changed
   become: yes
   become_user: "{{ netorion_user }}"
 
-- name: Check if ntopng directory is empty
-  find:
-    paths: "{{ netorion_build_dir }}/ntopng"
-    file_type: any
-  register: ntopng_directory
-
 - name: Clone ntopng repository
   git:
-    repo: https://github.com/ntop/ntopng.git
+    repo: https://github.com/rdev0x1/ntopng-dpdk.git
     dest: "{{ netorion_build_dir }}/ntopng"
-  when: ntopng_directory.matched == 0
+    version: "{{ ntopng_branch }}"
+  register: ntopng_clone
   become: yes
   become_user: "{{ netorion_user }}"
 
@@ -45,6 +40,5 @@
     ./autogen.sh
     ./configure
     make -j$(nproc)
-  when: ntopng_directory.matched == 0
   become: yes
   become_user: "{{ netorion_user }}"

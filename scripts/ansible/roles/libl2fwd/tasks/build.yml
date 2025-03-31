@@ -1,0 +1,25 @@
+- name: Ensure build directory exists
+  file:
+    path: "{{ netorion_build_dir }}"
+    state: directory
+    owner: "{{ netorion_user }}"
+    group: "{{ netorion_user }}"
+    mode: '0755'
+  become: yes
+
+- name: Clone libl2fwd repository
+  git:
+    repo: https://github.com/rdev0x1/libl2fwd.git
+    dest: "{{ netorion_build_dir }}/libl2fwd"
+    version: "{{ libl2fwd_branch}}"
+  register: libl2fwd_clone
+  become: yes
+  become_user: "{{ netorion_user }}"
+
+- name: Build libl2fwd
+  shell: |
+    cd "{{ netorion_build_dir }}/libl2fwd"
+    make
+  when: libl2fwd_clone.changed
+  become: yes
+  become_user: "{{ netorion_user }}"

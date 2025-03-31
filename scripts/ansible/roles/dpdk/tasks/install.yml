@@ -1,0 +1,27 @@
+---
+# Task to install DPDK and dependencies
+- name: Install required packages for DPDK
+  apt:
+    name:
+      - dpdk
+      - dpdk-dev
+      - dpdk-doc
+      - libnuma-dev
+      - build-essential
+      - linux-headers-{{ ansible_kernel }}
+      - python3-pip
+      - pciutils
+      - python3-pyelftools
+      - libsystemd-dev
+    state: present
+    update_cache: yes
+
+- name: Load kernel modules for DPDK
+  modprobe:
+    name: "{{ item }}"
+    state: present
+  loop:
+    - uio
+    - vfio
+    - vfio-pci
+  become: yes

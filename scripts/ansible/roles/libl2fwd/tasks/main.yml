@@ -1,0 +1,4 @@
+---
+
+- name: Include build tasks
+  include_tasks: build.yml

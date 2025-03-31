@@ -20,6 +20,7 @@ VM_CLOUD_INIT="./output/cloud-init.yaml"
 
 NETWORK="default"
 LAN_BRIDGE_NAME="orionbr0"
+WAN_BRIDGE_NAME="orionbr1"
 
 # Path to the secrets file
 SECRET_ENV_FILE="../private/secret_env.sh"
@@ -153,7 +154,7 @@ create_cloud_init_file() {
   fi
 
   # Generate the cloud-init file
-  envsubst < "${VM_CLOUD_INIT_TEMPLATE}" > "${VM_CLOUD_INIT}"
+  envsubst <"${VM_CLOUD_INIT_TEMPLATE}" >"${VM_CLOUD_INIT}"
   echo "Cloud-init file ${VM_CLOUD_INIT} has been generated successfully."
 }
 
@@ -161,17 +162,17 @@ create_net_bridge() {
   BRIDGE_NAME=$1
 
   # Check if the bridge already exists
-  if ip link show "$BRIDGE_NAME" > /dev/null 2>&1; then
-      echo "Bridge $BRIDGE_NAME already exists. No action required."
-      return
+  if ip link show "$BRIDGE_NAME" >/dev/null 2>&1; then
+    echo "Bridge $BRIDGE_NAME already exists. No action required."
+    return
   fi
 
   # Create the bridge interface
   echo "Creating bridge $BRIDGE_NAME..."
   sudo ip link add name "$BRIDGE_NAME" type bridge
   if [[ $? -ne 0 ]]; then
-      echo "Error: Failed to create bridge $BRIDGE_NAME."
-      exit 1
+    echo "Error: Failed to create bridge $BRIDGE_NAME."
+    exit 1
   fi
 
   # Bring up the bridge and the physical interface
@@ -191,6 +192,7 @@ create_cloud_init_file
 
 # Create network bridge if needed
 create_net_bridge $LAN_BRIDGE_NAME
+create_net_bridge $WAN_BRIDGE_NAME
 
 # Check if the base image exists; if not, create it
 if [[ ! -f "$BASE_IMAGE_PATH" ]]; then
@@ -225,16 +227,16 @@ virt-install \
   --disk path="$IMAGE_STORAGE_PATH",format=qcow2 \
   --os-variant debian12 \
   --virt-type kvm \
-  --network network=${NETWORK},model=virtio,mac=$WAN_MAC \
+  --network bridge=${WAN_BRIDGE_NAME},model=virtio,mac=$WAN_MAC \
   --network bridge=${LAN_BRIDGE_NAME},model=virtio,mac=$LAN_MAC \
   --network network=${NETWORK},model=virtio,mac=$MGT_MAC \
   --filesystem source=$(realpath ../ansible),target=ansible-folder,type=mount,driver.type=virtiofs \
   --cloud-init user-data="${VM_CLOUD_INIT}" \
   --import \
   --graphics none \
-  --console pty,target_type=serial \
-  --noautoconsole \
-  --quiet
+  --console pty,target_type=serial
+#  --noautoconsole \
+#  --quiet
 
 echo "VM '$VM_NAME' is booting. Waiting for configuration to complete..."
 

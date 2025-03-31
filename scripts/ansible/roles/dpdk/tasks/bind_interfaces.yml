@@ -1,0 +1,19 @@
+---
+# Task to bind network interfaces to DPDK
+
+- name: Install DPDK helper scripts
+  get_url:
+    url: https://raw.githubusercontent.com/DPDK/dpdk/main/usertools/dpdk-devbind.py
+    dest: /usr/local/bin/dpdk-devbind.py
+    mode: '0755'
+
+- name: Identify network interfaces for DPDK binding
+  shell: |
+    dpdk-devbind.py --status | grep -E 'Ethernet|Network' | awk '{print $1}'
+  register: dpdk_interfaces
+
+- name: Bind selected interfaces to DPDK driver
+  shell: |
+    dpdk-devbind.py --bind=vfio-pci {{ item }}
+  with_items: "{{ dpdk_interfaces.stdout_lines }}"
+  when: dpdk_interfaces.stdout_lines | length > 0
