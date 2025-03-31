@@ -1,0 +1,50 @@
+- name: Ensure build directory exists
+  file:
+    path: "{{ netorion_build_dir }}"
+    state: directory
+    owner: "{{ netorion_user }}"
+    group: "{{ netorion_user }}"
+    mode: '0755'
+  become: yes
+
+- name: Clone nDPI repository
+  git:
+    repo: https://github.com/ntop/nDPI.git
+    dest: "{{ netorion_build_dir }}/nDPI"
+  register: ndpi_clone
+  become: yes
+  become_user: "{{ netorion_user }}"
+
+- name: Build nDPI
+  shell: |
+    cd "{{ netorion_build_dir }}/nDPI"
+    ./autogen.sh
+    ./configure
+    make -j$(nproc)
+  when: ndpi_clone.changed
+  become: yes
+  become_user: "{{ netorion_user }}"
+
+- name: Check if ntopng directory is empty
+  find:
+    paths: "{{ netorion_build_dir }}/ntopng"
+    file_type: any
+  register: ntopng_directory
+
+- name: Clone ntopng repository
+  git:
+    repo: https://github.com/ntop/ntopng.git
+    dest: "{{ netorion_build_dir }}/ntopng"
+  when: ntopng_directory.matched == 0
+  become: yes
+  become_user: "{{ netorion_user }}"
+
+- name: Build ntopng
+  shell: |
+    cd "{{ netorion_build_dir }}/ntopng"
+    ./autogen.sh
+    ./configure
+    make -j$(nproc)
+  when: ntopng_directory.matched == 0
+  become: yes
+  become_user: "{{ netorion_user }}"

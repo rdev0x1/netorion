@@ -1,0 +1,27 @@
+---
+
+- name: Add contrib to all entries in /etc/apt/sources.list
+  ansible.builtin.lineinfile:
+    path: /etc/apt/sources.list
+    regexp: '^(deb.*\bdebian\b.*)(main)(.*)$'
+    line: '\1main contrib\3'
+    backrefs: yes
+
+- name: Update and upgrade apt packages
+  apt:
+    update_cache: yes
+    upgrade: dist
+
+- name: Install required packages
+  apt:
+    name:
+      - git
+      - build-essential
+      - libvirt-dev
+      - python3-pip
+      - libnl-3-dev
+      - libnl-genl-3-dev
+      - pkg-config
+      - python3-venv
+      - ufw
+    state: present

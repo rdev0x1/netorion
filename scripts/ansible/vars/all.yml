@@ -1,0 +1,4 @@
+---
+# Common variables
+netorion_build_dir: "/opt/netorion_build"
+netorion_user: "user"

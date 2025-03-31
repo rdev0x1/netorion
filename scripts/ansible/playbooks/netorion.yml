@@ -1,0 +1,10 @@
+---
+- name: Provision NetOrion VM
+  hosts: all
+  become: yes
+  vars_files:
+    - "{{ inventory_dir }}/../vars/all.yml"
+  roles:
+    - common
+    - redis
+    - netorion

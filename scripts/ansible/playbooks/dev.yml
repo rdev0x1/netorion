@@ -1,0 +1,11 @@
+---
+- name: Provision NetOrion VM with Development Tools
+  hosts: all
+  become: yes
+  vars_files:
+    - "{{ inventory_dir }}/../vars/all.yml"
+  roles:
+    - common
+    - redis
+    - netorion
+    - dev
