@@ -19,7 +19,7 @@ VM_CLOUD_INIT_TEMPLATE="./cloud-init-template.yaml"
 VM_CLOUD_INIT="./output/cloud-init.yaml"
 
 NETWORK="default"
-BRIDGE_NAME="orionbr0"
+LAN_BRIDGE_NAME="orionbr0"
 
 # Path to the secrets file
 SECRET_ENV_FILE="../private/secret_env.sh"
@@ -158,6 +158,8 @@ create_cloud_init_file() {
 }
 
 create_net_bridge() {
+  BRIDGE_NAME=$1
+
   # Check if the bridge already exists
   if ip link show "$BRIDGE_NAME" > /dev/null 2>&1; then
       echo "Bridge $BRIDGE_NAME already exists. No action required."
@@ -188,7 +190,7 @@ install_dependencies
 create_cloud_init_file
 
 # Create network bridge if needed
-create_net_bridge
+create_net_bridge $LAN_BRIDGE_NAME
 
 # Check if the base image exists; if not, create it
 if [[ ! -f "$BASE_IMAGE_PATH" ]]; then
@@ -224,7 +226,8 @@ virt-install \
   --os-variant debian12 \
   --virt-type kvm \
   --network network=${NETWORK},model=virtio,mac=$WAN_MAC \
-  --network bridge=${BRIDGE_NAME},model=virtio,mac=$LAN_MAC \
+  --network bridge=${LAN_BRIDGE_NAME},model=virtio,mac=$LAN_MAC \
+  --network network=${NETWORK},model=virtio,mac=$MGT_MAC \
   --filesystem source=$(realpath ../ansible),target=ansible-folder,type=mount,driver.type=virtiofs \
   --cloud-init user-data="${VM_CLOUD_INIT}" \
   --import \
