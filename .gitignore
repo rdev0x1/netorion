@@ -1,2 +1,2 @@
-scripts/private/
+scripts/private/secret_env.sh
 scripts/vm_setup/output/

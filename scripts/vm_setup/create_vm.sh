@@ -11,13 +11,28 @@ DEBIAN_URL="https://cdimage.debian.org/images/cloud/bookworm/latest/${IMAGE_NAME
 IMAGE_SHA512="75db35c328863c6c84cb48c1fe1d7975407af637b272cfb8c87ac0cc0e7e89c8a1cc840c2d6d82794b53051a1131d233091c4f4d5790557a8540f0dc9fc4f631"
 IMAGE_STORAGE_PATH="/data/virt/disk/${VM_NAME}.qcow2"
 
-RAM_MB=4096
+RAM_MB=8192
 VCPUS=4
+DISK_SIZE_GB=20
+
 VM_CLOUD_INIT_TEMPLATE="./cloud-init-template.yaml"
 VM_CLOUD_INIT="./output/cloud-init.yaml"
 
 NETWORK="default"
 BRIDGE_NAME="orionbr0"
+
+# Path to the secrets file
+SECRET_ENV_FILE="../private/secret_env.sh"
+
+# Check if the secrets file exists
+if [[ ! -f $SECRET_ENV_FILE ]]; then
+  echo "Error: $SECRET_ENV_FILE not found."
+  echo "The file should contain the public SSH key as an environment variable, e.g., SSH_PUB_KEY='ssh-rsa AAAAB3...'"
+  exit 1
+fi
+
+# Source the secrets file
+source $SECRET_ENV_FILE
 
 # Function to detect the Linux distribution and set package manager
 detect_distro() {
@@ -124,19 +139,6 @@ create_base_image() {
 
 # Generate cloud-init file
 create_cloud_init_file() {
-  # Path to the secrets file
-  SECRET_ENV_FILE="../private/secret_env.sh"
-
-  # Check if the secrets file exists
-  if [[ ! -f $SECRET_ENV_FILE ]]; then
-    echo "Error: $SECRET_ENV_FILE not found."
-    echo "The file should contain the public SSH key as an environment variable, e.g., SSH_PUB_KEY='ssh-rsa AAAAB3...'"
-    exit 1
-  fi
-
-  # Source the secrets file
-  source $SECRET_ENV_FILE
-
   # Check if the SSH_PUB_KEY variable is set
   if [[ -z "${SSH_PUB_KEY}" ]]; then
     echo "Error: SSH_PUB_KEY is not set in $SECRET_ENV_FILE."
@@ -173,9 +175,7 @@ create_net_bridge() {
   # Bring up the bridge and the physical interface
   echo "Bringing up the bridge and physical interface..."
   sudo ip link set "$BRIDGE_NAME" up
-
   echo "Bridge $BRIDGE_NAME has been successfully created."
-
 }
 
 # Detect Linux distribution and set package manager
@@ -184,8 +184,10 @@ detect_distro
 # Install dependencies
 install_dependencies
 
+# Generate cloud-init file
 create_cloud_init_file
 
+# Create network bridge if needed
 create_net_bridge
 
 # Check if the base image exists; if not, create it
@@ -208,9 +210,11 @@ fi
 echo "Creating VM image..."
 sudo cp "$BASE_IMAGE_PATH" "$IMAGE_STORAGE_PATH"
 
-# Define the new VM using virt-install
-echo "Defining and creating the VM..."
+# Resize the image to DISK_SIZE_GB (e.g., 20 GB)
+echo "Resizing image to ${DISK_SIZE_GB}G..."
+sudo qemu-img resize "$IMAGE_STORAGE_PATH" "${DISK_SIZE_GB}G"
 
+echo "Defining and creating the VM..."
 virt-install \
   --name "$VM_NAME" \
   --memory "$RAM_MB" \
@@ -219,8 +223,8 @@ virt-install \
   --disk path="$IMAGE_STORAGE_PATH",format=qcow2 \
   --os-variant debian12 \
   --virt-type kvm \
-  --network network="$NETWORK",model=virtio \
-  --network bridge=${BRIDGE_NAME},model=virtio \
+  --network network=${NETWORK},model=virtio,mac=$WAN_MAC \
+  --network bridge=${BRIDGE_NAME},model=virtio,mac=$LAN_MAC \
   --filesystem source=$(realpath ../ansible),target=ansible-folder,type=mount,driver.type=virtiofs \
   --cloud-init user-data="${VM_CLOUD_INIT}" \
   --import \
@@ -231,9 +235,9 @@ virt-install \
 
 echo "VM '$VM_NAME' is booting. Waiting for configuration to complete..."
 
-# Loop to check if the VM exists and Cloud-Init has finished
+# Wait for the Cloud-Init process to finish
 while true; do
-  # Check if the VM exists
+  # Check if the VM still exists
   if ! virsh domstate "$VM_NAME" >/dev/null 2>&1; then
     echo -e "\nError: VM '$VM_NAME' no longer exists or has been removed."
     exit 1
@@ -253,4 +257,3 @@ done
 virsh domifaddr ${VM_NAME}
 
 echo -e "\nVM '$VM_NAME' has been successfully created and configured."
-

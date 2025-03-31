@@ -21,6 +21,24 @@ write_files:
       LANG="en_US.UTF-8"
       LANGUAGE="en_US:en"
       LC_ALL="en_US.UTF-8"
+
+  - path: /etc/netplan/50-cloud-init.yaml
+    content: |
+      network:
+        version: 2
+        ethernets:
+          enp2s0:
+            dhcp4: true
+            match:
+              macaddress: $WAN_MAC
+            set-name: wan0
+          enp3s0:
+            dhcp4: false
+            match:
+              macaddress: $LAN_MAC
+            set-name: lan0
+            addresses: [192.168.10.1/24]
+
 timezone: UTC
 
 packages:
@@ -32,6 +50,7 @@ packages:
   - locales
   - kitty-terminfo
   - neovim
+  - iptables-persistent
 
 runcmd:
   # qemu
@@ -44,8 +63,22 @@ runcmd:
   - locale-gen en_US.UTF-8
   - update-locale LANG=en_US.UTF-8
 
+  # Apply netork config (ie: rename interfaces)
+  - sudo netplan apply
+
+  # Enable IP forwarding
+  - echo "net.ipv4.ip_forward=1" | sudo tee -a /etc/sysctl.conf
+  - sudo sysctl -p
+
+  # Configure NAT for traffic from lan0 through wan0
+  - sudo iptables -t nat -A POSTROUTING -o wan0 -j MASQUERADE
+  - sudo iptables -A FORWARD -i lan0 -o wan0 -m state --state RELATED,ESTABLISHED -j ACCEPT
+  - sudo iptables -A FORWARD -i lan0 -o wan0 -j ACCEPT
+  - sudo netfilter-persistent save
+
   # ansible shared folder
   - sudo mkdir -p /mnt/ansible
   - echo "ansible-folder /mnt/ansible virtiofs defaults 0 0" | sudo tee -a /etc/fstab
   - sudo mount -a
+
   - echo "Setting up NetOrion"

@@ -17,6 +17,9 @@ I'm running it on musl version of void linux with amd64 architecture.
    - `cloud-init`
 2. Add your SSH public key to `private/secret_env.sh`:
 
+- copy private/example_secret_env.sh to private/secret_env.sh
+- add your SSH pub key.
+
    ```bash
    export SSH_PUB_KEY="ssh-rsa AAAAB3...your-public-key"
    ```
